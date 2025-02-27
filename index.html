@@ -127,15 +127,12 @@
           console.error('校正ルール読み込みエラー:', error);
         });
     }
-
-    // 初期状態は、デフォルトの校正ルールを使用する（ロードが失敗した場合のフォールバック）
-    activeCorrectionRules = [];
+    loadCorrectionRules();  // 初期ロード
 
     // クライアントサイドの校正処理：activeCorrectionRules を順次適用
     function clientProofread(text) {
       let corrected = text;
       for (const rule of activeCorrectionRules) {
-        // 各ルールを RegExp オブジェクトに変換して適用
         try {
           let regex = new RegExp(rule.pattern, 'g');
           corrected = corrected.replace(regex, rule.replacement);
@@ -149,7 +146,7 @@
     /**********************
      * 音声認識・読み上げ・モデル管理の処理
      **********************/
-    // マイクアクセスの確認（HTTPS環境下で実行すること）
+    // マイクアクセス確認（HTTPS必須）
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => { console.log("マイクアクセスOK", stream); })
       .catch(error => { console.error("マイクアクセスエラー:", error); });
@@ -172,7 +169,7 @@
     let speakEnabled = false;  // 初期状態はOFF
     let speakDelay = parseInt(speakDelayInput.value);
     let speakTimeout;
-    let finalTranscript = "";  // 累積した自動校正後のテキスト
+    let finalTranscript = "";  // 累積した校正済みテキスト
 
     let recognition;
     if (window.SpeechRecognition) {
@@ -182,10 +179,13 @@
       recognition.interimResults = true;
       recognition.maxAlternatives = 10;
 
+      recognition.onstart = () => {
+        console.log("音声認識が開始されました。");
+      };
+
       recognition.onresult = (event) => {
         let newFinalSegment = "";
         let interimSegment = "";
-        // 新たに得られた結果のみを処理（累積分は finalTranscript に追加）
         for (let i = event.resultIndex; i < event.results.length; i++) {
           let transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
@@ -195,15 +195,12 @@
           }
         }
         if (newFinalSegment) {
-          // 新たな最終部分だけを校正して追加
           let correctedSegment = clientProofread(newFinalSegment);
           finalTranscript += correctedSegment + " ";
         }
-        // interim部分も校正して一時表示（累積には追加しない）
         let correctedInterim = clientProofread(interimSegment);
-        // 認識結果画面には累積テキスト + 最新の interim 校正結果のみ表示
         displayArea.innerHTML = '<strong>認識結果:</strong> ' + finalTranscript + correctedInterim;
-
+        console.log('Raw newFinalSegment:', newFinalSegment, '→ 校正:', clientProofread(newFinalSegment));        
         if (speakTimeout) { clearTimeout(speakTimeout); }
         if (speakEnabled && (finalTranscript || correctedInterim)) {
           speakTimeout = setTimeout(() => {
@@ -224,7 +221,7 @@
       };
     }
 
-    // MediaRecorder による音声録音設定（モデル保存等に利用可能）
+    // MediaRecorder による音声録音設定（モデル保存用）
     let mediaRecorder;
     let audioChunks = [];
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -272,7 +269,6 @@
     /**********************
      * モデル管理（校正ルールセットの保存／読み込み／編集／削除）
      **********************/
-    // モデル保存：現在の activeCorrectionRules をモデルとして保存
     saveModelBtn.addEventListener('click', () => {
       let modelName = prompt('保存するモデルの名前を入力してください', '新しいモデル');
       if (!modelName) return;
@@ -288,7 +284,6 @@
       loadModels();
     });
 
-    // モデル一覧の読み込みと表示（編集／削除／読み込みボタン付き）
     function loadModels() {
       modelListElem.innerHTML = '';
       let models = JSON.parse(localStorage.getItem('savedModels') || '[]');
@@ -299,7 +294,6 @@
         span.textContent = model.name;
         li.appendChild(span);
 
-        // 編集ボタン
         const editBtn = document.createElement('button');
         editBtn.textContent = '編集';
         editBtn.style.marginLeft = '0.5em';
@@ -314,7 +308,6 @@
         });
         li.appendChild(editBtn);
 
-        // 削除ボタン
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '削除';
         deleteBtn.style.marginLeft = '0.5em';
@@ -325,7 +318,6 @@
         });
         li.appendChild(deleteBtn);
 
-        // 読み込みボタン：このモデルの校正ルールを activeCorrectionRules に設定
         const loadBtn = document.createElement('button');
         loadBtn.textContent = '読み込み';
         loadBtn.style.marginLeft = '0.5em';
@@ -339,9 +331,6 @@
       });
     }
     loadModels();
-
-    // 最初に校正ルールを JSON から読み込む
-    loadCorrectionRules();
   </script>
 </body>
 </html>
