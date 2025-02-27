@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>未来音声アシスタント</title>
+  <style>
+    /* 近未来的でシンプルなUIスタイル */
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header, footer {
+      text-align: center;
+      padding: 1em;
+      background: linear-gradient(45deg, #1a1a1a, #333);
+    }
+    main {
+      flex: 1;
+      padding: 1em;
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+    }
+    #displayArea {
+      background-color: #1f1f1f;
+      border: 2px solid #00ffea;
+      border-radius: 10px;
+      padding: 1em;
+      min-height: 150px;
+      overflow-y: auto;
+    }
+    #controls, #settings, #modelListSection {
+      background-color: #1f1f1f;
+      border: 2px solid #00ffea;
+      border-radius: 10px;
+      padding: 1em;
+    }
+    #controls {
+      display: flex;
+      gap: 1em;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background-color: #00ffea;
+      border: none;
+      color: #121212;
+      padding: 0.8em 1.2em;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #00d7c3;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    @media (max-width: 600px) {
+      #controls {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>未来音声アシスタント</h1>
+    </header>
+    <main>
+      <!-- 認識結果表示エリア（自動校正後のテキストのみ表示） -->
+      <div id="displayArea">ここに認識結果が表示されます...</div>
+      
+      <!-- コントロールボタン群 -->
+      <div id="controls">
+        <button id="startRec">音声認識開始</button>
+        <button id="stopRec">音声認識停止</button>
+        <button id="toggleSpeak">読み上げON/OFF</button>
+      </div>
+      
+      <!-- 設定エリア -->
+      <div id="settings">
+        <h2>設定</h2>
+        <div>
+          <label for="speakDelay">読み上げ遅延: <span id="delayValue">1000</span> ms</label>
+          <input type="range" id="speakDelay" min="0" max="5000" value="1000">
+        </div>
+        <div style="margin-top: 1em;">
+          <button id="saveModel">モデルを保存</button>
+        </div>
+      </div>
+      
+      <!-- 保存されたモデル一覧（読み込みボタン付き） -->
+      <div id="modelListSection">
+        <h2>保存されたモデル</h2>
+        <ul id="modelList"></ul>
+      </div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Your Company Name</p>
+    </footer>
+  </div>
+
+  <script>
+    /**********************
+     * kousei.json から校正ルールを読み込む
+     **********************/
+    let activeCorrectionRules = [];
+    function loadCorrectionRules() {
+      return fetch('kousei.json')
+        .then(response => response.json())
+        .then(data => {
+          activeCorrectionRules = data;
+          console.log('校正ルールが読み込まれました。', activeCorrectionRules);
+        })
+        .catch(error => {
+          console.error('校正ルール読み込みエラー:', error);
+        });
+    }
+
+    // 初期状態は、デフォルトの校正ルールを使用する（ロードが失敗した場合のフォールバック）
+    activeCorrectionRules = [];
+
+    // クライアントサイドの校正処理：activeCorrectionRules を順次適用
+    function clientProofread(text) {
+      let corrected = text;
+      for (const rule of activeCorrectionRules) {
+        // 各ルールを RegExp オブジェクトに変換して適用
+        try {
+          let regex = new RegExp(rule.pattern, 'g');
+          corrected = corrected.replace(regex, rule.replacement);
+        } catch(e) {
+          console.error('ルール適用エラー:', rule, e);
+        }
+      }
+      return corrected.trim();
+    }
+
+    /**********************
+     * 音声認識・読み上げ・モデル管理の処理
+     **********************/
+    // マイクアクセスの確認（HTTPS環境下で実行すること）
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => { console.log("マイクアクセスOK", stream); })
+      .catch(error => { console.error("マイクアクセスエラー:", error); });
+
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!window.SpeechRecognition) {
+      alert('このブラウザは音声認識に対応していません。Chromeなど最新のブラウザをご利用ください。');
+    }
+
+    const startRecBtn = document.getElementById('startRec');
+    const stopRecBtn = document.getElementById('stopRec');
+    const toggleSpeakBtn = document.getElementById('toggleSpeak');
+    const displayArea = document.getElementById('displayArea');
+    const speakDelayInput = document.getElementById('speakDelay');
+    const delayValueSpan = document.getElementById('delayValue');
+    const saveModelBtn = document.getElementById('saveModel');
+    const modelListElem = document.getElementById('modelList');
+
+    let isRecognizing = false;
+    let speakEnabled = false;  // 初期状態はOFF
+    let speakDelay = parseInt(speakDelayInput.value);
+    let speakTimeout;
+    let finalTranscript = "";  // 累積した自動校正後のテキスト
+
+    let recognition;
+    if (window.SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 10;
+
+      recognition.onresult = (event) => {
+        let newFinalSegment = "";
+        let interimSegment = "";
+        // 新たに得られた結果のみを処理（累積分は finalTranscript に追加）
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          let transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            newFinalSegment += transcript;
+          } else {
+            interimSegment += transcript;
+          }
+        }
+        if (newFinalSegment) {
+          // 新たな最終部分だけを校正して追加
+          let correctedSegment = clientProofread(newFinalSegment);
+          finalTranscript += correctedSegment + " ";
+        }
+        // interim部分も校正して一時表示（累積には追加しない）
+        let correctedInterim = clientProofread(interimSegment);
+        // 認識結果画面には累積テキスト + 最新の interim 校正結果のみ表示
+        displayArea.innerHTML = '<strong>認識結果:</strong> ' + finalTranscript + correctedInterim;
+
+        if (speakTimeout) { clearTimeout(speakTimeout); }
+        if (speakEnabled && (finalTranscript || correctedInterim)) {
+          speakTimeout = setTimeout(() => {
+            let utterance = new SpeechSynthesisUtterance(finalTranscript + correctedInterim);
+            utterance.lang = 'ja-JP';
+            speechSynthesis.speak(utterance);
+          }, speakDelay);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('音声認識エラー:', event.error);
+      };
+
+      recognition.onend = () => {
+        isRecognizing = false;
+        console.log('音声認識が終了しました。');
+      };
+    }
+
+    // MediaRecorder による音声録音設定（モデル保存等に利用可能）
+    let mediaRecorder;
+    let audioChunks = [];
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) { audioChunks.push(e.data); }
+        };
+        mediaRecorder.onstop = () => { console.log('音声録音が停止しました。'); };
+      })
+      .catch(err => {
+        console.error('録音用マイクアクセスエラー:', err);
+      });
+
+    startRecBtn.addEventListener('click', () => {
+      if (recognition && !isRecognizing) {
+        finalTranscript = "";
+        audioChunks = []; // 録音データリセット
+        recognition.start();
+        if (mediaRecorder && mediaRecorder.state === 'inactive') { mediaRecorder.start(); }
+        isRecognizing = true;
+        console.log('音声認識開始');
+      }
+    });
+
+    stopRecBtn.addEventListener('click', () => {
+      if (recognition && isRecognizing) {
+        recognition.stop();
+        if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); }
+        isRecognizing = false;
+        console.log('音声認識停止');
+      }
+    });
+
+    toggleSpeakBtn.addEventListener('click', () => {
+      speakEnabled = !speakEnabled;
+      toggleSpeakBtn.textContent = speakEnabled ? '読み上げON' : '読み上げOFF';
+    });
+
+    speakDelayInput.addEventListener('input', () => {
+      speakDelay = parseInt(speakDelayInput.value);
+      delayValueSpan.textContent = speakDelay;
+    });
+
+    /**********************
+     * モデル管理（校正ルールセットの保存／読み込み／編集／削除）
+     **********************/
+    // モデル保存：現在の activeCorrectionRules をモデルとして保存
+    saveModelBtn.addEventListener('click', () => {
+      let modelName = prompt('保存するモデルの名前を入力してください', '新しいモデル');
+      if (!modelName) return;
+      let newModel = {
+        name: modelName,
+        rules: activeCorrectionRules,  // 現在の校正ルールを保存
+        timestamp: Date.now()
+      };
+      let models = JSON.parse(localStorage.getItem('savedModels') || '[]');
+      models.push(newModel);
+      localStorage.setItem('savedModels', JSON.stringify(models));
+      alert('モデルが保存されました。');
+      loadModels();
+    });
+
+    // モデル一覧の読み込みと表示（編集／削除／読み込みボタン付き）
+    function loadModels() {
+      modelListElem.innerHTML = '';
+      let models = JSON.parse(localStorage.getItem('savedModels') || '[]');
+      models.forEach((model, index) => {
+        const li = document.createElement('li');
+        li.style.marginBottom = '0.5em';
+        const span = document.createElement('span');
+        span.textContent = model.name;
+        li.appendChild(span);
+
+        // 編集ボタン
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編集';
+        editBtn.style.marginLeft = '0.5em';
+        editBtn.addEventListener('click', () => {
+          let newName = prompt('モデル名を変更してください', model.name);
+          if (newName) {
+            model.name = newName;
+            models[index] = model;
+            localStorage.setItem('savedModels', JSON.stringify(models));
+            loadModels();
+          }
+        });
+        li.appendChild(editBtn);
+
+        // 削除ボタン
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '削除';
+        deleteBtn.style.marginLeft = '0.5em';
+        deleteBtn.addEventListener('click', () => {
+          models.splice(index, 1);
+          localStorage.setItem('savedModels', JSON.stringify(models));
+          loadModels();
+        });
+        li.appendChild(deleteBtn);
+
+        // 読み込みボタン：このモデルの校正ルールを activeCorrectionRules に設定
+        const loadBtn = document.createElement('button');
+        loadBtn.textContent = '読み込み';
+        loadBtn.style.marginLeft = '0.5em';
+        loadBtn.addEventListener('click', () => {
+          activeCorrectionRules = model.rules;
+          alert('モデル「' + model.name + '」が読み込まれ、認識精度が向上しました。');
+        });
+        li.appendChild(loadBtn);
+
+        modelListElem.appendChild(li);
+      });
+    }
+    loadModels();
+
+    // 最初に校正ルールを JSON から読み込む
+    loadCorrectionRules();
+  </script>
+</body>
+</html>
