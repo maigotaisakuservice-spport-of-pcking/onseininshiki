@@ -1,5 +1,5 @@
 // correctionData.js
-// 100種類の自動修正ルール
+// 100種類の自動修正ルールを定義（各パターンは文字列として定義）
 const correctionRules = [
   { pattern: "\\s{2,}", replacement: " " },
   { pattern: "\\n", replacement: " " },
