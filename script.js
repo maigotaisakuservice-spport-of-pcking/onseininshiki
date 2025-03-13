@@ -85,7 +85,17 @@ recognition.onresult = (event) => {
 };
 
 recognition.onerror = (event) => {
-  console.error("音声認識エラー:", event.error);
+  recognition.onerror = (event) => {
+  if (event.error === "no-speech") {
+    console.warn("音声が検出されませんでした。入力がない場合、このエラーは発生します。");
+    // オプション: 認識を自動再開する
+    recognition.stop();
+    setTimeout(() => recognition.start(), 1000);
+  } else {
+    console.error("音声認識エラー:", event.error);
+  }
+};
+
 };
 
 recognition.onend = () => {
