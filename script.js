@@ -1,9 +1,9 @@
-// app.js
+// script.js
 
-// 初期状態は、外部ファイル correctionData.js の correctionRules を使用
+// activeCorrectionRules は、correctionData.js で定義された correctionRules を初期値として使用
 let activeCorrectionRules = correctionRules.slice();
 
-// クライアントサイドの校正処理：activeCorrectionRules を順次適用
+// クライアントサイドの校正処理：activeCorrectionRules をすべて適用
 function clientProofread(text) {
   let corrected = text;
   activeCorrectionRules.forEach(rule => {
@@ -32,10 +32,10 @@ let speakEnabled = false;
 let speakDelay = parseInt(speakDelayInput.value);
 let speakTimeout;
 
-// 累積した認識結果（校正後テキスト）
+// 認識結果の累積（校正後テキスト）
 let finalTranscript = "";
 
-// マイクアクセス確認（HTTP/HTTPS 両対応）
+// マイクアクセス確認（HTTP/HTTPS両対応）
 navigator.mediaDevices.getUserMedia({ audio: true })
   .then(stream => { console.log("マイクアクセスOK", stream); })
   .catch(error => { console.error("マイクアクセスエラー:", error); });
@@ -120,7 +120,7 @@ saveModelBtn.addEventListener("click", () => {
   if (!modelName) return;
   let newModel = {
     name: modelName,
-    rules: activeCorrectionRules, // 現在の校正ルールを保存
+    rules: activeCorrectionRules,  // 現在の校正ルールを保存
     timestamp: Date.now()
   };
   let models = JSON.parse(localStorage.getItem("savedModels") || "[]");
