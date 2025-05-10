@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ライセンス認証</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    color: #333;
+  }
+  h1 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    animation: fadeIn 2s;
+  }
+  input {
+    padding: 10px;
+    font-size: 1em;
+    border: 2px solid #74ebd5;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    outline: none;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 1em;
+    background: #74ebd5;
+    border: none;
+    border-radius: 30px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  button:hover {
+    background: #4facfe;
+    transform: scale(1.05);
+  }
+  #main {
+    display: none;
+    margin-top: 20px;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<h1>ライセンス認証システム</h1>
+<input type="text" id="licenseKey" placeholder="ライセンスキーを入力">
+<button id="checkButton">認証</button>
+<div id="main"><h2>認証成功！リダイレクト中...</h2></div>
+
+<script>
+// 開発者ツール検出（サイズ検出 + devtools-detect + debuggerループ）
+(function() {
+  const threshold = 160;
+  setInterval(() => {
+    if (window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold) {
+      alert('警告: 開発者ツールを閉じてください。');
+      window.location.reload();
+    }
+  }, 500);
+
+  const devtoolsDetect = () => {
+    const element = new Image();
+    Object.defineProperty(element, 'id', {
+      get: function() {
+        alert('開発者ツールの使用は許可されていません。');
+        window.location.reload();
+      }
+    });
+    console.log(element);
+  };
+  devtoolsDetect();
+
+  const loop = () => {
+    setInterval(function() {
+      debugger;
+    }, 1000);
+  };
+  loop();
+
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+      alert('開発者ツールはセキュリティ上の理由で利用できません。');
+      e.preventDefault();
+    }
+  });
+
+  window.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    alert('右クリックはセキュリティ上の理由で利用できません。');
+  });
+})();
+
+// ライセンス認証処理
+document.getElementById('checkButton').addEventListener('click', async function() {
+  const enteredKey = document.getElementById('licenseKey').value.trim();
+  const button = this;
+  button.disabled = true;  // ボタン連打防止
+
+  try {
+    const response = await fetch('https://license.checklicenseforpcking.f5.si');
+    const text = await response.text();
+    const validKeys = text.split(',').map(k => k.trim());
+
+    if (validKeys.includes(enteredKey)) {
+      document.getElementById('main').style.display = 'block';
+      setTimeout(() => {
+        window.location.href = 'WeirdJapaneseTranslation.html';
+      }, 2000);
+    } else {
+      alert('ライセンスキーが無効です。');
+    }
+  } catch (e) {
+    alert('ライセンスサーバーに接続できません。');
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
