@@ -85,24 +85,25 @@
   });
 
   // --- ライセンスキー検証 ---
-  document.getElementById('checkButton').addEventListener('click', async function() {
-    const enteredKey = document.getElementById('licenseKey').value.trim();
-    try {
-      const response = await fetch('https://checklicenseforpcking.f5.si', { cache: 'no-store' });
-      const text = await response.text();
-      const validKeys = text.split(',');
-      if (validKeys.includes(enteredKey)) {
-        document.getElementById('main').style.display = 'block';
-        setTimeout(() => {
-          window.location.href = 'WeirdJapaneseTranslation.html';
-        }, 2000);
-      } else {
-        alert('ライセンスキーが無効です。');
+  const workerUrl = 'licensenisyocheck.workers.dev';
+
+    async function checkButton() {
+      const key = document.getElementById('licenseKey').value.trim();
+      try {
+        const res = await fetch(workerUrl);
+        const data = await res.text();
+        const keys = data.split(',');
+        if (keys.includes(key)) {
+          alert('認証成功！リダイレクト中…');
+          setTimeout(() => location.href = 'WeirdJapaneseTranslation.html', 2000);
+        } else {
+          alert('ライセンスキーが無効です。');
+        }
+      } catch (err) {
+        alert('ライセンスサーバーに接続できません。');
+        console.error(err);
       }
-    } catch (e) {
-      alert('ライセンスサーバーに接続できません。');
     }
-  });
 
   // --- すり抜け防止用ダミー・難読化フック（ビルド時にobfuscate推奨） ---
   console.warn('開発者ツールを使用するとアクセスが制限されます。');
