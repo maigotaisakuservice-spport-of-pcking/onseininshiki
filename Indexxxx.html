@@ -109,14 +109,14 @@ document.getElementById('checkButton').addEventListener('click', async function(
   button.disabled = true;  // ボタン連打防止
 
   try {
-    const response = await fetch('https://license.checklicenseforpcking.f5.si');
+    const response = await fetch('https://checklicenseforpcking.f5.si');
     const text = await response.text();
     const validKeys = text.split(',').map(k => k.trim());
 
     if (validKeys.includes(enteredKey)) {
       document.getElementById('main').style.display = 'block';
       setTimeout(() => {
-        window.location.href = 'WeirdJapaneseTranslation.html';
+        window.location.href = 'index.html';
       }, 2000);
     } else {
       alert('ライセンスキーが無効です。');
