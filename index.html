@@ -48,5 +48,36 @@
   <!-- 外部JavaScriptファイルの読み込み -->  
   <script src="correctionData.js"></script>
   <script src="script.js"></script>
+
+<!-- DDos攻撃対策スクリプト -->
+  <script>
+(function() {
+  const KEY_PREFIX = "__myAccessCtrl__";
+  const countKey = `${KEY_PREFIX}count`;
+  const timeKey = `${KEY_PREFIX}timestamp`;
+  const maxCount = 10;
+  const timeLimit = 60 * 1000; // 1分（ミリ秒）
+
+  const now = Date.now();
+  let count = parseInt(localStorage.getItem(countKey), 10) || 0;
+  let timestamp = parseInt(localStorage.getItem(timeKey), 10) || now;
+
+  if (now - timestamp > timeLimit) {
+    // 時間が経過していたらリセット
+    count = 1;
+    timestamp = now;
+  } else {
+    count += 1;
+  }
+
+  localStorage.setItem(countKey, count);
+  localStorage.setItem(timeKey, timestamp);
+
+  if (count > maxCount) {
+    window.location.href = "アクセス禁止.html";
+  }
+})();
+  </script>
+  
 </body>
 </html>
