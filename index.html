@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>従業員ID認証</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 30px; }
+    #reader { width: 300px; margin: auto; }
+    #result, #status, #lock-timer { margin-top: 20px; font-size: 1.2em; }
+    #status { font-weight: bold; }
+    #pin-section { display: none; margin-top: 20px; }
+    #pin-display {
+      font-size: 1.5em;
+      letter-spacing: 10px;
+      margin-bottom: 10px;
+      background-color: #eee;
+      padding: 10px;
+      width: 120px;
+      margin: auto;
+    }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .keypad button {
+      font-size: 1.2em;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>従業員ID認証システム</h1>
+  <h2>一般のお客様へ<br>こちらのサービスは試験段階のサービスのため、利用者を制限しております。</h2>
+  <div id="reader"></div>
+  <div id="result">読み取り結果: <span id="id-text">---</span></div>
+
+  <div id="pin-section">
+    <p>暗証番号を入力してください:</p>
+    <div id="pin-display">____</div>
+    <div class="keypad">
+      <button onclick="inputDigit('1')">1</button>
+      <button onclick="inputDigit('2')">2</button>
+      <button onclick="inputDigit('3')">3</button>
+      <button onclick="inputDigit('4')">4</button>
+      <button onclick="inputDigit('5')">5</button>
+      <button onclick="inputDigit('6')">6</button>
+      <button onclick="inputDigit('7')">7</button>
+      <button onclick="inputDigit('8')">8</button>
+      <button onclick="inputDigit('9')">9</button>
+      <button onclick="clearPIN()">C</button>
+      <button onclick="inputDigit('0')">0</button>
+      <button onclick="verifyPIN()">OK</button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+  <div id="lock-timer" style="color: red;"></div>
+
+  <script>
+    const validIDs = ["EMP12345", "EMP67890", "EMP00001"];
+    const correctPIN = "4452";
+    let scannedID = "";
+    let pinInput = "";
+    let failCount = 0;
+    const maxFails = 5;
+    const lockDuration = 300; // 5分（秒）
+    let lockTimeout = null;
+    let lockCountdown = null;
+    let remainingTime = 0;
+
+    function onScanSuccess(decodedText) {
+      if (validIDs.includes(decodedText)) {
+        scannedID = decodedText;
+        document.getElementById("id-text").textContent = decodedText;
+        document.getElementById("status").textContent = "✅ ID認証成功。暗証番号を入力してください。";
+        document.getElementById("status").style.color = "black";
+        document.getElementById("pin-section").style.display = "block";
+        html5QrcodeScanner.clear();
+      } else {
+        document.getElementById("status").textContent = "❌ 無効なIDです。";
+        document.getElementById("status").style.color = "red";
+      }
+    }
+
+    function inputDigit(digit) {
+      if (pinInput.length < 4 && !isLocked()) {
+        pinInput += digit;
+        updateDisplay();
+      }
+    }
+
+    function updateDisplay() {
+      document.getElementById("pin-display").textContent =
+        pinInput.padEnd(4, "_");
+    }
+
+    function clearPIN() {
+      if (!isLocked()) {
+        pinInput = "";
+        updateDisplay();
+      }
+    }
+
+    function verifyPIN() {
+      if (isLocked()) return;
+
+      if (pinInput.length !== 4) {
+        document.getElementById("status").textContent = "⚠️ 4桁の暗証番号を入力してください。";
+        document.getElementById("status").style.color = "orange";
+        return;
+      }
+
+      if (pinInput === correctPIN) {
+        document.getElementById("status").textContent = `✅ アクセス許可：${scannedID}。移動中...`;
+        document.getElementById("status").style.color = "green";
+        setTimeout(() => {
+          window.location.href = "main.html";
+        }, 1000);
+      } else {
+        failCount++;
+        if (failCount >= maxFails) {
+          lockPINPad();
+        } else {
+          document.getElementById("status").textContent =
+            `❌ 暗証番号が間違っています（${failCount} / 5）`;
+          document.getElementById("status").style.color = "red";
+          clearPIN();
+        }
+      }
+    }
+
+    function disableKeypad(disable) {
+      document.querySelectorAll(".keypad button").forEach(btn => {
+        if (btn.textContent !== "C" && btn.textContent !== "OK") {
+          btn.disabled = disable;
+        }
+      });
+      document.querySelector('button[onclick="clearPIN()"]').disabled = disable;
+      document.querySelector('button[onclick="verifyPIN()"]').disabled = disable;
+    }
+
+    function isLocked() {
+      return remainingTime > 0;
+    }
+
+    function lockPINPad() {
+      remainingTime = lockDuration;
+      updateLockTimer();
+      disableKeypad(true);
+      document.getElementById("status").textContent = "🚫 5回間違えました。5分間ロックされます。";
+      document.getElementById("status").style.color = "red";
+
+      lockCountdown = setInterval(() => {
+        remainingTime--;
+        updateLockTimer();
+        if (remainingTime <= 0) {
+          unlockPINPad();
+        }
+      }, 1000);
+    }
+
+    function unlockPINPad() {
+      clearInterval(lockCountdown);
+      failCount = 0;
+      remainingTime = 0;
+      document.getElementById("lock-timer").textContent = "";
+      document.getElementById("status").textContent = "🔓 ロック解除されました。再入力できます。";
+      document.getElementById("status").style.color = "green";
+      disableKeypad(false);
+      clearPIN();
+    }
+
+    function updateLockTimer() {
+      if (remainingTime > 0) {
+        document.getElementById("lock-timer").textContent = `⏳ ロック解除まで：${remainingTime} 秒`;
+      } else {
+        document.getElementById("lock-timer").textContent = "";
+      }
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", { fps: 10, qrbox: 250 }
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
