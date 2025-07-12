@@ -103,4 +103,131 @@ const correctionRules = [
   { pattern: "乙", replacement: "お疲れ様" },
   { pattern: "わろた", replacement: "笑った" },
   { pattern: "ｗ{2,}", replacement: "笑" },
+  // 続き100件（101〜200）
+  
+  // 誤字脱字・よくあるミス
+  { pattern: "わかりませんでした", replacement: "わかりません" },
+  { pattern: "ありませんでした", replacement: "ありません" },
+  { pattern: "できませんでした", replacement: "できません" },
+  { pattern: "いって", replacement: "言って" },
+  { pattern: "みて", replacement: "見て" },
+  { pattern: "きいて", replacement: "聞いて" },
+  { pattern: "かんがえて", replacement: "考えて" },
+  { pattern: "なっています", replacement: "なっている" },
+  { pattern: "なってます", replacement: "なっている" },
+  { pattern: "ますます", replacement: "ます" },
+  { pattern: "くさいくさい", replacement: "くさい" },
+  { pattern: "ありますあります", replacement: "あります" },
+  { pattern: "ありますか", replacement: "ありますか？" },
+  { pattern: "なにか", replacement: "何か" },
+  { pattern: "ひとつ", replacement: "一つ" },
+  { pattern: "ふたつ", replacement: "二つ" },
+  { pattern: "みっつ", replacement: "三つ" },
+  { pattern: "よっつ", replacement: "四つ" },
+  { pattern: "いつつ", replacement: "五つ" },
+  { pattern: "むっつ", replacement: "六つ" },
+  { pattern: "ななつ", replacement: "七つ" },
+  { pattern: "やっつ", replacement: "八つ" },
+  { pattern: "ここのつ", replacement: "九つ" },
+  { pattern: "とお", replacement: "十" },
+
+  // 文法の重複軽減
+  { pattern: "いいい", replacement: "いい" },
+  { pattern: "あああ", replacement: "ああ" },
+  { pattern: "えええ", replacement: "ええ" },
+  { pattern: "おおお", replacement: "おお" },
+  { pattern: "ううう", replacement: "うう" },
+  { pattern: "ありがとうありがとう", replacement: "ありがとう" },
+  { pattern: "こんにちはこんにちは", replacement: "こんにちは" },
+  { pattern: "おはようおはよう", replacement: "おはよう" },
+
+  // よくある口語
+  { pattern: "だめだ", replacement: "だめだよ" },
+  { pattern: "だよね", replacement: "ですね" },
+  { pattern: "そうだよね", replacement: "そうですね" },
+  { pattern: "ほんとに", replacement: "本当に" },
+  { pattern: "なんで", replacement: "なぜ" },
+  { pattern: "なんでだろう", replacement: "なぜだろう" },
+  { pattern: "わかるわかる", replacement: "わかる" },
+  { pattern: "たぶん", replacement: "多分" },
+  { pattern: "ほんとう", replacement: "本当" },
+  { pattern: "てきとう", replacement: "適当" },
+  { pattern: "そういうこと", replacement: "そういうことだ" },
+  { pattern: "いいよね", replacement: "良いですね" },
+  { pattern: "わかってる", replacement: "わかっています" },
+
+  // 方言補正（続き）
+  { pattern: "〜やんか", replacement: "〜じゃないか" },
+  { pattern: "〜やんな", replacement: "〜だね" },
+  { pattern: "〜してん", replacement: "〜している" },
+  { pattern: "〜しとるん", replacement: "〜しているの" },
+  { pattern: "〜やろう", replacement: "〜でしょう" },
+  { pattern: "〜ちゃうちゃう", replacement: "違う" },
+  { pattern: "〜ちゃうん", replacement: "違うの" },
+  { pattern: "ほんまに", replacement: "本当に" },
+  { pattern: "まじで", replacement: "本当に" },
+  { pattern: "やばい", replacement: "大変" },
+  { pattern: "うざい", replacement: "煩わしい" },
+  { pattern: "きもい", replacement: "気持ち悪い" },
+
+  // 丁寧表現不足の補正
+  { pattern: "してくれ", replacement: "してください" },
+  { pattern: "してよ", replacement: "してくださいよ" },
+  { pattern: "ちょっとまって", replacement: "少し待ってください" },
+  { pattern: "すぐいく", replacement: "すぐ行きます" },
+  { pattern: "わかった", replacement: "わかりました" },
+  { pattern: "そうだよ", replacement: "そうですよ" },
+
+  // その他よくあるミスや誤用
+  { pattern: "てる", replacement: "ている" },
+  { pattern: "だよね？", replacement: "ですよね？" },
+  { pattern: "だよね。", replacement: "ですよね。" },
+  { pattern: "だね？", replacement: "ですね？" },
+  { pattern: "だね。", replacement: "ですね。" },
+  { pattern: "するの？", replacement: "しますか？" },
+  { pattern: "するの。", replacement: "します。" },
+  { pattern: "いるの？", replacement: "いますか？" },
+  { pattern: "いるの。", replacement: "います。" },
+
+  // 数字と単位の間のスペース除去
+  { pattern: "(\\d+)\\s+kg", replacement: "$1kg" },
+  { pattern: "(\\d+)\\s+cm", replacement: "$1cm" },
+  { pattern: "(\\d+)\\s+m", replacement: "$1m" },
+
+  // よくある入力ミス
+  { pattern: "おk", replacement: "OK" },
+  { pattern: "ｏｋ", replacement: "OK" },
+  { pattern: "ＯＫ", replacement: "OK" },
+
+  // 英語の全角→半角置換
+  { pattern: "Ａ", replacement: "A" },
+  { pattern: "Ｂ", replacement: "B" },
+  { pattern: "Ｃ", replacement: "C" },
+  { pattern: "Ｄ", replacement: "D" },
+  { pattern: "Ｅ", replacement: "E" },
+
+  // 簡単な敬語修正
+  { pattern: "いただきます。", replacement: "いただきます" },
+  { pattern: "よろしくお願いします。", replacement: "よろしくお願いします" },
+  { pattern: "お疲れ様です。", replacement: "お疲れ様です" },
+
+  // 簡単な話し言葉から書き言葉への変換
+  { pattern: "わかんない", replacement: "わかりません" },
+  { pattern: "わかんないです", replacement: "わかりません" },
+  { pattern: "わかるよ", replacement: "わかりますよ" },
+
+  // その他軽い補正
+  { pattern: "〜ってば", replacement: "〜ですよ" },
+  { pattern: "〜なんだけど", replacement: "〜ですが" },
+  { pattern: "〜だからね", replacement: "〜ですから" },
+  { pattern: "〜じゃん", replacement: "〜ですね" },
+  { pattern: "〜ってばさ", replacement: "〜ですよ" },
+
+  // ネットスラング軽減続き
+  { pattern: "ｗｗｗ", replacement: "笑" },
+  { pattern: "ｗｗ", replacement: "笑" },
+  { pattern: "ｗ", replacement: "笑" },
+  { pattern: "乙", replacement: "お疲れ様" },
+  { pattern: "ｇｊ", replacement: "グッドジョブ" },
+  { pattern: "グッジョブ", replacement: "グッドジョブ" },
 ];
